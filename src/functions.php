@@ -134,13 +134,12 @@ function closureToString(\Closure $closure): string
     $body = (function () use ($body, $lastKey) {
         $str = '';
         foreach ($body as $num => $line) {
-            if ($$lastKey == $num) {
-                $str .= PHP_EOL;
+            $str .= PHP_EOL;
+            if ($lastKey == $num) {
                 $str .= trim($line);
                 break;
             }
 
-            $str .= PHP_EOL;
             $str .= '    ';
             $str .= trim($line);
         }
