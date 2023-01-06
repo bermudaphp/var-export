@@ -2,99 +2,20 @@
 
 namespace Bermuda\Utils;
 
+use PhpParser\Node;
+use PhpParser\Node\Expr\ArrowFunction as A;
+use PhpParser\Node\Expr\Closure as C;
+use PhpParser\NodeFinder;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitorAbstract;
+use PhpParser\ParserFactory;
+use PhpParser\PrettyPrinter\Standard;
+
 function closureToString(\Closure $closure): string
 {
-    $str = '';
     $reflector = new \ReflectionFunction($closure);
 
-    if ($reflector->isStatic()) {
-        $str .= 'static ';
-    }
-
-    $str .= 'function';
-
-    if ($reflector->returnsReference()) {
-        $str .= ' & ';
-    }
-
-    $str .= '(';
-
-    $params = $reflector->getParameters();
-    $implodeType = function(\ReflectionType $type) {
-        $str = '';
-        if ($type instanceof \ReflectionNamedType) {
-            if ($type->allowsNull()) {
-                $str .= '?';
-            }
-            $str .= $type->getName();
-        } elseif ($type instanceof \ReflectionUnionType) {
-            $glue = '';
-            foreach ($type->getTypes() as $t) {
-                $str .= $glue;
-                $str .= $t->getName();
-                $glue = '|';
-            }
-        } else {
-            $glue = '';
-            $str = '';
-            foreach ($type->getTypes() as $t) {
-                $str .= $glue;
-                $str .= $t->getName();
-                $glue = '&';
-            }
-        }
-
-        return $str;
-    };
-
-    if ($params != []) {
-        $glue = '';
-        foreach ($params as $param) {
-            $str .= $glue;
-
-            if ($param->hasType()) {
-                $str .= $implodeType($param->getType());
-                $str .= ' ';
-            }
-
-            if ($param->isVariadic()) {
-                $str .= ' ... ';
-            }
-
-            if ($param->isPassedByReference()) {
-                $str .= '&';
-            }
-
-            $str .= '$';
-            $str .= $param->getName();
-
-            if ($param->isDefaultValueAvailable()) {
-
-                $str .= ' = ';
-                $str .= $param->getDefaultValue() === null ? 'null'
-                    : $param->getDefaultValue();
-            }
-
-            $glue = ', ';
-        }
-
-    }
-
-    $str .= ')';
-
-    if ($reflector->getClosureUsedVariables() != []) {
-        $str .= ' use (';
-        $str .= implode(',', array_map(static fn($v) => "$$v", array_keys($reflector->getClosureUsedVariables())));
-        $str .= ')';
-    }
-
-    if ($reflector->getReturnType()) {
-        $str .= ': ';
-        $str .= $implodeType($reflector->getReturnType());
-    }
-
-    $str .= ' {';
-    $readLines = static function(string $filename, int $start = null, int $end = null): array {
+    $reader = static function(string $filename, int $start = null, int $end = null): array {
         $fh = fopen($filename, 'r');
         $num = 0;
         $lines = [];
@@ -127,32 +48,22 @@ function closureToString(\Closure $closure): string
         return $lines;
     };
 
-    $body = $readLines($reflector->getFileName(), $reflector->getStartLine(), $reflector->getEndLine());
+    $code = $reader($reflector->getFileName(), $reflector->getStartLine(), $reflector->getEndLine());
+    $code = implode('', $code);
 
-    $lastKey = array_key_last($body);
+    if (!str_starts_with($code, '<?') && !str_starts_with($code, '<?php')) {
+        $code = '<?php' . $code;
+    }
 
-    $body = (function () use ($body, $lastKey) {
-        $str = '';
-        foreach ($body as $num => $line) {
-            $str .= PHP_EOL;
-            if ($lastKey == $num) {
-                $str .= trim($line);
-                break;
-            }
+    $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
 
-            $str .= '    ';
-            $str .= trim($line);
-        }
+    $ast = $parser->parse($code);
 
-        return $str;
-    })();
+    $nodeFinder = new NodeFinder();
+    
+    $node = $nodeFinder->findFirst($ast,
+        static fn(Node $node) => $node instanceof A || $node instanceof C
+    );
 
-    $start = stripos($body, '{');
-    $end = strripos($body, '}');
-
-    $str .= substr($body, $start + 1, $end - $start - 1);
-
-    $str .= '}';
-
-    return $str;
+    return (new Standard)->prettyPrintExpr($node);
 }
