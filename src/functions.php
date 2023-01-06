@@ -52,7 +52,7 @@ function closureToString(\Closure $closure): string
     $code = implode('', $code);
 
     if (!str_starts_with($code, '<?') && !str_starts_with($code, '<?php')) {
-        $code = '<?php' . $code;
+        $code = '<?php ' . $code;
     }
 
     $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
