@@ -23,7 +23,7 @@ class ClosureExporter implements ClosureExporterInterface {
 
         $nodeFinder = new NodeFinder;
         
-        $node = $nodeFinder->findFirst($ast, $this->createFindCallback());
+        $node = $nodeFinder->findFirst($ast, $this->createFindCallback($reflector));
 
         if ($reflector->getReturnType()) {
             $node->returnType = new Node\Name($reflector->getReturnType()->getName());
@@ -67,7 +67,7 @@ class ClosureExporter implements ClosureExporterInterface {
         return (new Standard)->prettyPrintExpr($node);
     }
     
-    protected function createFindCallback(): callable
+    protected function createFindCallback(\ReflectionFunction $reflector): callable
     {
         return static function(Node $node) use ($reflector): bool {
             return ($node instanceof Node\Expr\ArrowFunction || $node instanceof Node\Expr\Closure )
