@@ -1,6 +1,6 @@
 <?php
 
-namespace Bermuda\VarExport
+namespace Bermuda\VarExport;
 
 interface ClosureExporterInterface
 {
