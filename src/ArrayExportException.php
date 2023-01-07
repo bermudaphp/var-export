@@ -2,6 +2,6 @@
 
 namespace Bermuda\VarExport;
 
-class ArrayExportException extends \Exception
+class ArrayExportException extends ExportException
 {
 }
