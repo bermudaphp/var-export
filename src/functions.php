@@ -8,7 +8,7 @@ namespace Bermuda\VarExport;
  */
 function export_closure(\Closure $closure): string
 {
-    return (new ClosureExporter)->exportClosure($closure);
+    return VarExporter::export($var);
 }
 
 /**
@@ -18,5 +18,15 @@ function export_closure(\Closure $closure): string
  */
 function export_array(array $var): string
 {
-    return (new ArrayExporter)->exportArray($var);
+    return VarExporter::export($var);
+}
+
+/**
+ * @param mixed $var
+ * @return string
+ * @throws ExportException
+ */
+function export_var(mixed $var): string
+{
+    return VarExporter::export($var);
 }
