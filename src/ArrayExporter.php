@@ -29,7 +29,7 @@ class ArrayExporter implements ArrayExporterInterface {
                 $content .= "$key => $value";
             } elseif (is_object($value)) {
                 $path !== null ? $path .= ".$k" : $path = $k;
-                throw new ArrayEceptorException(
+                throw new ArrayExportException(
                     "The value of the array with the key {$path} is an object and cannot be exported"
                 );
             } elseif (is_int($value) || is_float($value)) {
@@ -41,7 +41,7 @@ class ArrayExporter implements ArrayExporterInterface {
                 $content .= "$key => null";
             } elseif (is_resource($value)) {
                 $path !== null ? $path .= ".$k" : $path = $k;
-                throw new ArrayEceptorException(
+                throw new ArrayExportException(
                     "The value of the array with the key {$path} is an resource and cannot be exported"
                 );
             } else {
