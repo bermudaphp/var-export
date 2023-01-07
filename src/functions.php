@@ -1,6 +1,6 @@
 <?php
 
-namespace Bermuda\VarExporter;
+namespace Bermuda\VarExport;
 
 /**
  * @param \Closure $closure
