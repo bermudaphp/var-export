@@ -22,11 +22,9 @@ class ClosureExporter implements ClosureExporterInterface
         $parser = $this->createParser();
 
         $code = $this->readFile($reflector->getFileName());
-
         $ast = $parser->parse($code);
 
         $nodeFinder = new NodeFinder;
-
         $node = $nodeFinder->findFirst($ast, $this->createFindCallback($reflector));
 
         if ($reflector->getReturnType()) {
@@ -55,6 +53,7 @@ class ClosureExporter implements ClosureExporterInterface
         fclose($fh);
         return $content;
     }
+    
     protected function createParser(): Parser
     {
         return (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
