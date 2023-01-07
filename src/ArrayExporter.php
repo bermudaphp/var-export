@@ -1,6 +1,6 @@
 <?php
 
-namespace Bermuda\VarExport
+namespace Bermuda\VarExport;
 
 class ArrayExporter implements ArrayExporterInterface {
     protected $whitespace = '    ';
