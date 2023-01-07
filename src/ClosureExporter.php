@@ -28,20 +28,48 @@ class ClosureExporter implements ClosureExporterInterface
         $node = $nodeFinder->findFirst($ast, $this->createFindCallback($reflector));
 
         if ($reflector->getReturnType()) {
-            $node->returnType = new Name($reflector->getReturnType()->getName());
+            if ($node->returnType instanceof Name) {
+                $node->returnType->parts = explode('\\', $reflector->getReturnType()->getName());
+            } elseif ($node->returnType instanceof Node\IntersectionType
+                || $node->returnType instanceof Node\UnionType) {
+                $filtered = array_filter($node->returnType->types, static fn($v) => $v instanceof Name);
+                foreach ($reflector->getReturnType()->getTypes() as $type) {
+                    if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
+                        $parts = explode('\\', $type->getName());
+                        foreach ($filtered as $item) {
+                            if (end($item->parts) == end($parts)) {
+                                $item->parts = $parts;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if ($reflector->getParameters() != []) {
             foreach ($reflector->getParameters() as $pos => $parameter) {
-                if ($parameter->getType() instanceof \ReflectionNamedType) {
+                if ($parameter->getType() instanceof \ReflectionNamedType && !$parameter->getType()->isBuiltin()) {
                     $node->params[$pos]->type->parts = explode('\\', $parameter->getType()->getName());
+                } elseif ($parameter->getType() instanceof \ReflectionUnionType
+                    || $parameter->getType() instanceof \ReflectionIntersectionType) {
+                    $filtered = array_filter($node->params[$pos]->type->types, static fn($v) => $v instanceof Name);
+                    foreach ($parameter->getType()->getTypes() as $type) {
+                        if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
+                            $parts = explode('\\', $type->getName());
+                            foreach ($filtered as $item) {
+                                if (end($item->parts) == end($parts)) {
+                                    $item->parts = $parts;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
         return $this->getPrinter()->prettyPrintExpr($node);
     }
-
+    
     protected function readFile(string $filename): string {
         $fh = fopen($filename, 'r');
         $content = '';
