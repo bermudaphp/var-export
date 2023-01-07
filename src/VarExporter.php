@@ -12,7 +12,7 @@ final class VarExporter
         if (is_int($var) || is_float($var) || is_string($var)) return $var;
         if (is_bool($var)) return $var ? 'true' : 'false';
         if (is_object($var)) throw new ExportException('The variable is an object and cannot be exported', $var);
-        if (is_resource($var)) throw new ExportException('the variable is an resource and cannot be exported', $var);
+        if (is_resource($var)) throw new ExportException('The variable is an resource and cannot be exported', $var);
     }
 
     /**
