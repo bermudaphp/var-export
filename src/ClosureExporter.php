@@ -51,6 +51,7 @@ class ClosureExporter implements ClosureExporterInterface {
         fclose($fh);
         return $content;
     }
+    
     protected function createParser(): Parser
     {
         return (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
