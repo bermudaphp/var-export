@@ -26,7 +26,7 @@ final class VarExporter
         }
     }
 
-    private function getExporter(string $class): array
+    private static function getExporter(string $class): array
     {
         if (!isset(self::$exporters[$class])) {
             if ($class == ArrayExporterInterface::class) {
