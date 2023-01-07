@@ -64,7 +64,7 @@ class ClosureExporter implements ClosureExporterInterface {
     
     protected function getPrinter(): PrettyPrinterAbstract
     {
-        return (new Standard)->prettyPrintExpr($node);
+        return (new Standard);
     }
     
     protected function createFindCallback(\ReflectionFunction $reflector): callable
