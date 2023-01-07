@@ -1,6 +1,6 @@
 <?php
 
-namespace Bermuda\Utils;
+namespace Bermuda\VarExport;
 
 use PhpParser\Node;
 use PhpParser\NodeFinder;
@@ -10,8 +10,12 @@ use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
 use PhpParser\PrettyPrinterAbstract;
+use PhpParser\Node\Expr\ArrowFunction;
+use PhpParser\Node\Expr\Closure as NodeClosure;
+use PhpParser\Node\Name;
 
-class ClosureExporter {
+class ClosureExporter implements ClosureExporterInterface
+{
     public function exportClosure(\Closure $closure): string
     {
         $reflector = $this->getReflector($closure);
@@ -26,7 +30,7 @@ class ClosureExporter {
         $node = $nodeFinder->findFirst($ast, $this->createFindCallback($reflector));
 
         if ($reflector->getReturnType()) {
-            $node->returnType = new Node\Name($reflector->getReturnType()->getName());
+            $node->returnType = new Name($reflector->getReturnType()->getName());
         }
 
         if ($reflector->getParameters() != []) {
@@ -69,7 +73,7 @@ class ClosureExporter {
     protected function createFindCallback(\ReflectionFunction $reflector): callable
     {
         return static function(Node $node) use ($reflector): bool {
-            return ($node instanceof Node\Expr\ArrowFunction || $node instanceof Node\Expr\Closure )
+            return ($node instanceof ArrowFunction || $node instanceof NodeClosure)
                 && $node->getStartLine() == $reflector->getStartLine();
         };
     }
