@@ -8,7 +8,7 @@ final class VarExporter
     public static function export(mixed $var): string
     {
         if ($var instanceof \Closure) return self::getExporter(ClosureExporterInterface::class)->exportClosure($var);
-        if (is_array($var)) return self::getExporter(ArrayExporterInterface::class);
+        if (is_array($var)) return self::getExporter(ArrayExporterInterface::class)->exportArray($var);
         if (is_int($var) || is_float($var) || is_string($var)) return $var;
         if (is_bool($var)) return $var ? 'true' : 'false';
         if (is_object($var)) throw new ExportException('The variable is an object and cannot be exported', $var);
