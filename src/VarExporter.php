@@ -35,5 +35,7 @@ final class VarExporter
                 return self::$exporters[$class] = new ClosureExporter;
             }
         }
+        
+        return self::$exporters[$class];
     }
 }
