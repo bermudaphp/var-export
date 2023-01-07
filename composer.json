@@ -1,7 +1,10 @@
 {
-  "name": "bermudaphp/utils-closure",
+  "name": "bermudaphp/var-export",
   "license": "MIT",
   "autoload": {
+    "psr-4": {
+      "Bermuda\\VarExport\\": "src/",
+    },
     "files": ["src\\functions.php"]
   },
   "require": {
