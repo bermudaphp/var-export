@@ -3,7 +3,7 @@
   "license": "MIT",
   "autoload": {
     "psr-4": {
-      "Bermuda\\VarExport\\": "src/",
+      "Bermuda\\VarExport\\": "src/"
     },
     "files": ["src\\functions.php"]
   },
