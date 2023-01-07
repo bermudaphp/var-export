@@ -2,7 +2,7 @@
 
 namespace Bermuda\VarExport
 
-class ArrayExporter {
+class ArrayExporter implements ArrayExporterInterface {
     protected $whitespace = '    ';
     public function exportArray(array $var): string
     {
