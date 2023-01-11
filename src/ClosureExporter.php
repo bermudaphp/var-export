@@ -16,56 +16,18 @@ use PhpParser\Node\Name;
 
 class ClosureExporter implements ClosureExporterInterface
 {
+    protected static NodeFinder|null $nodeFinder = null;
     public function exportClosure(\Closure $closure): string
     {
-        $reflector = $this->getReflector($closure);
-        $parser = $this->createParser();
+        $code = $this->readFile(($reflector = new \ReflectionFunction($closure))
+            ->getFileName());
+        $ast = $this->createParser()->parse($code);
 
-        $code = $this->readFile($reflector->getFileName());
-        $ast = $parser->parse($code);
+        $node = static::getFinder()->findFirst($ast, $this->createFindCallback($reflector));
 
-        $nodeFinder = new NodeFinder;
-        $node = $nodeFinder->findFirst($ast, $this->createFindCallback($reflector));
-
-        if ($reflector->getReturnType()) {
-            if ($node->returnType instanceof Name) {
-                $node->returnType->parts = explode('\\', $reflector->getReturnType()->getName());
-            } elseif ($node->returnType instanceof Node\IntersectionType
-                || $node->returnType instanceof Node\UnionType) {
-                $filtered = array_filter($node->returnType->types, static fn($v) => $v instanceof Name);
-                foreach ($reflector->getReturnType()->getTypes() as $type) {
-                    if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
-                        $parts = explode('\\', $type->getName());
-                        foreach ($filtered as $item) {
-                            if (end($item->parts) == end($parts)) {
-                                $item->parts = $parts;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if ($reflector->getParameters() != []) {
-            foreach ($reflector->getParameters() as $pos => $parameter) {
-                if ($parameter->getType() instanceof \ReflectionNamedType && !$parameter->getType()->isBuiltin()) {
-                    $node->params[$pos]->type->parts = explode('\\', $parameter->getType()->getName());
-                } elseif ($parameter->getType() instanceof \ReflectionUnionType
-                    || $parameter->getType() instanceof \ReflectionIntersectionType) {
-                    $filtered = array_filter($node->params[$pos]->type->types, static fn($v) => $v instanceof Name);
-                    foreach ($parameter->getType()->getTypes() as $type) {
-                        if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
-                            $parts = explode('\\', $type->getName());
-                            foreach ($filtered as $item) {
-                                if (end($item->parts) == end($parts)) {
-                                    $item->parts = $parts;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        $traverser = new NodeTraverser;
+        $traverser->addVisitor($this->getVisitor($this->getNamespace($ast), $this->getUseNodes($ast)));
+        $traverser->traverse([$node]);
 
         return $this->getPrinter()->prettyPrintExpr($node);
     }
@@ -102,6 +64,64 @@ class ClosureExporter implements ClosureExporterInterface
         return static function(Node $node) use ($reflector): bool {
             return ($node instanceof ArrowFunction || $node instanceof NodeClosure)
                 && $node->getStartLine() == $reflector->getStartLine();
+        };
+    }
+
+    protected static function getFinder(): NodeFinder
+    {
+        return static::$nodeFinder ?? static::$nodeFinder = new NodeFinder;
+    }
+
+    protected function getNamespace(array $ast):? Node\Stmt\Namespace_
+    {
+        return static::getFinder()->findFirstInstanceOf($ast, Node\Stmt\Namespace_::class);
+    }
+
+    protected function getUseNodes(array $ast):? array
+    {
+        $ast = static::getFinder()->find($ast, static fn($node) => $node instanceof Node\Stmt\Use_
+            || $node instanceof Node\Stmt\GroupUse
+        );
+
+        return $ast == [] ? null : $ast;
+    }
+
+    protected function getVisitor(?Node\Stmt\Namespace_ $namespace, ?array $uses)
+    {
+        return new class($namespace, $uses) extends NodeVisitorAbstract
+        {
+            public function __construct(
+                private ?Node\Stmt\Namespace_ $namespace,
+                private ?array $uses) {
+            }
+
+            public function enterNode(Node $node)
+            {
+                if ($node instanceof Name && !$node instanceof Name\FullyQualified) {
+                    foreach ($this->uses as $use) {
+                        $parts = [];
+                        if ($use instanceof Node\Stmt\GroupUse) {
+                            $parts = $use->prefix->parts;
+                        }
+
+                        foreach ($use->uses as $useUse) {
+                            if (end($useUse->name->parts) == end($node->parts)) {
+                                $parts = array_merge($parts, $useUse->name->parts);
+                                return new Name\FullyQualified($parts, $node->getAttributes());
+                            }
+                        }
+                    }
+                    if ($this->namespace) {
+                        return new Name\FullyQualified(
+                            [...$this->namespace->name->parts, ...$node->parts],
+                            $node->getAttributes()
+                        );
+                    }
+                }
+
+                return $node;
+            }
+
         };
     }
 }
