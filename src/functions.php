@@ -8,7 +8,7 @@ namespace Bermuda\VarExport;
  */
 function export_closure(\Closure $closure): string
 {
-    return VarExporter::export($var);
+    return VarExporter::export($closure);
 }
 
 /**
