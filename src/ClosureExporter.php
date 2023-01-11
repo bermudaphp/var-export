@@ -90,13 +90,28 @@ class ClosureExporter implements ClosureExporterInterface
     {
         return new class($namespace, $uses) extends NodeVisitorAbstract
         {
+            /**
+             * @var Node[]
+             */
+            private $stack = [];
             public function __construct(
                 private ?Node\Stmt\Namespace_ $namespace,
                 private ?array $uses) {
             }
 
+            public function beforeTraverse(array $nodes)
+            {
+                $this->stack = [];
+            }
+
             public function enterNode(Node $node)
             {
+                if (!empty($this->stack)) {
+                    $node->setAttribute('parent', $this->stack[count($this->stack) - 1]);
+                }
+
+                $this->stack[] = $node;
+
                 if ($node instanceof Name && !$node instanceof Name\FullyQualified) {
                     foreach ($this->uses as $use) {
                         $parts = [];
@@ -111,6 +126,34 @@ class ClosureExporter implements ClosureExporterInterface
                             }
                         }
                     }
+
+                    if ($node->getAttribute('parent') instanceof Node\Expr\ConstFetch) {
+                        if (in_array(strtolower($node->parts[0]), ['null', 'false', 'true'])) {
+                            return $node;
+                        }
+                        foreach (get_defined_constants() as $name => $v) {
+                            if ($node->parts[0] == $name) {
+                                return new Name\FullyQualified($node->parts[0], $node->getAttributes());
+                            }
+                        }
+                    }
+
+                    if ($node->getAttribute('parent') instanceof Node\Expr\FuncCall) {
+                        $code = strtolower($node->toCodeString());
+                        $definedFunctions = get_defined_functions();
+                        foreach ($definedFunctions['internal'] as $name) {
+                            if ($code == $name) {
+                                return new Name\FullyQualified($name, $node->getAttributes());
+                            }
+                        }
+
+                        foreach ($definedFunctions['user'] as $name) {
+                            if ($code == $name) {
+                                return new Name\FullyQualified($name, $node->getAttributes());
+                            }
+                        }
+                    }
+
                     if ($this->namespace) {
                         return new Name\FullyQualified(
                             [...$this->namespace->name->parts, ...$node->parts],
@@ -122,6 +165,10 @@ class ClosureExporter implements ClosureExporterInterface
                 return $node;
             }
 
+            public function leaveNode(Node $node)
+            {
+                array_pop($this->stack);
+            }
         };
     }
 }
