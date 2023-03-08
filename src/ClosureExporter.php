@@ -235,18 +235,20 @@ final class ClosureExporter implements ClosureExporterInterface
                         }
                     }
 
-                    if ($this->namespace) {
-                        foreach ($node->parts as &$part) {
-                            if (strtolower($part) == 'self' || strtolower($part) == 'static') {
-                                if (!$cls) $cls = ($this->clsNameFinder)($node);
-                                if ($cls) $part = $cls->name->name;
-                            }
+                    foreach ($node->parts as &$part) {
+                        if (strtolower($part) == 'self' || strtolower($part) == 'static') {
+                            if (!$cls) $cls = ($this->clsNameFinder)($node);
+                            if ($cls) $part = $cls->name->name;
                         }
+                    }
 
+                    if ($this->namespace) {
                         return new Name\FullyQualified(
                             [...$this->namespace->name->parts, ...$node->parts],
                             $node->getAttributes()
                         );
+                    } else {
+                        return new Name\FullyQualified($node->parts, $node->getAttributes());
                     }
                 }
 
@@ -263,7 +265,7 @@ final class ClosureExporter implements ClosureExporterInterface
                 }
 
                 if ($node instanceof Node\Scalar\MagicConst\File) {
-                    return new Node\Scalar\String_($this->file);
+                    return new Node\Scalar\String_($this->file, $node->getAttributes());
                 }
 
 
