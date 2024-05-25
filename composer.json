@@ -9,6 +9,6 @@
   },
   "require": {
     "php": "^8.1",
-    "nikic/php-parser": "^4.15|^5.0.2"
+    "nikic/php-parser": "^5.0.2"
   }
 }
