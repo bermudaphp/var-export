@@ -11,6 +11,7 @@ use PhpParser\NodeVisitor\FirstFindingVisitor;
 use PhpParser\NodeVisitorAbstract;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
+use PhpParser\PhpVersion;
 use PhpParser\PrettyPrinter\Standard;
 use PhpParser\PrettyPrinterAbstract;
 use PhpParser\Node\Expr\ArrowFunction;
@@ -78,7 +79,7 @@ final class ClosureExporter implements ClosureExporterInterface
     
     private function createParser(): Parser
     {
-        return (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
+        return (new ParserFactory)->createForVersion(PhpVersion::getHostVersion());
     }
 
     private function getReflector(\Closure $closure): \ReflectionFunction
@@ -126,7 +127,7 @@ final class ClosureExporter implements ClosureExporterInterface
                 return parent::enterNode($node);
             }
 
-            public function beforeTraverse(array $nodes)
+            public function beforeTraverse(array $nodes):? array
             {
                 $this->stack = [];
                 return parent::beforeTraverse($nodes);
@@ -201,20 +202,20 @@ final class ClosureExporter implements ClosureExporterInterface
                         }
 
                         foreach ($use->uses as $useUse) {
-                            if (end($useUse->name->parts) == end($node->parts)) {
-                                $parts = array_merge($parts, $useUse->name->parts);
+                            if ($useUse->name->getLast() == $node->getLast()) {
+                                $parts = array_merge($parts, $useUse->name->getParts());
                                 return new Name\FullyQualified($parts, $node->getAttributes());
                             }
                         }
                     }
 
                     if ($node->getAttribute('parent') instanceof Node\Expr\ConstFetch) {
-                        if (in_array(strtolower($node->parts[0]), ['null', 'false', 'true'])) {
+                        if (in_array(strtolower($node->getFirst()), ['null', 'false', 'true'])) {
                             return $node;
                         }
                         foreach (get_defined_constants() as $name => $v) {
                             if ($node->parts[0] == $name) {
-                                return new Name\FullyQualified($node->parts[0], $node->getAttributes());
+                                return new Name\FullyQualified($node->getFirst(), $node->getAttributes());
                             }
                         }
                     }
@@ -244,11 +245,11 @@ final class ClosureExporter implements ClosureExporterInterface
 
                     if ($this->namespace) {
                         return new Name\FullyQualified(
-                            [...$this->namespace->name->parts, ...$node->parts],
+                            [...$this->namespace->name->getParts(), ...$node->getParts()],
                             $node->getAttributes()
                         );
                     } else {
-                        return new Name\FullyQualified($node->parts, $node->getAttributes());
+                        return new Name\FullyQualified($node->getParts(), $node->getAttributes());
                     }
                 }
 
@@ -256,7 +257,7 @@ final class ClosureExporter implements ClosureExporterInterface
                     if (!$cls) $cls = ($this->clsNameFinder)($node);
                     if ($cls) {
                         $part = $cls->name->name;
-                        return new Node\Expr\ClassConstFetch(new Name\FullyQualified([...$this->namespace->name->parts, $part]), 'class',
+                        return new Node\Expr\ClassConstFetch(new Name\FullyQualified([...$this->namespace->name->getParts(), $part]), 'class',
                             $node->getAttributes()
                         );
                     }
