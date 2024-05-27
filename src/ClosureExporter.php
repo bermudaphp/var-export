@@ -198,7 +198,7 @@ final class ClosureExporter implements ClosureExporterInterface
                     foreach ($this->uses as $use) {
                         $parts = [];
                         if ($use instanceof Node\Stmt\GroupUse) {
-                            $parts = $use->prefix->parts;
+                            $parts = $use->prefix->getParts();
                         }
 
                         foreach ($use->uses as $useUse) {
@@ -214,7 +214,7 @@ final class ClosureExporter implements ClosureExporterInterface
                             return $node;
                         }
                         foreach (get_defined_constants() as $name => $v) {
-                            if ($node->parts[0] == $name) {
+                            if ($node->getFirst() == $name) {
                                 return new Name\FullyQualified($node->getFirst(), $node->getAttributes());
                             }
                         }
@@ -236,11 +236,21 @@ final class ClosureExporter implements ClosureExporterInterface
                         }
                     }
 
-                    foreach ($node->parts as &$part) {
+                    $nodeName = [];
+                    $replaceNode = false;
+                    foreach ($node->getParts() as $part) {
                         if (strtolower($part) == 'self' || strtolower($part) == 'static') {
                             if (!$cls) $cls = ($this->clsNameFinder)($node);
-                            if ($cls) $part = $cls->name->name;
+                            if ($cls) {
+                                $part = $cls->name->name;
+                                $replaceNode = true;
+                            }
                         }
+                        $nodeName[] = $part;
+                    }
+
+                    if ($replaceNode) {
+                        $node = new Name($nodeName, $node->getAttributes());
                     }
 
                     if ($this->namespace) {
