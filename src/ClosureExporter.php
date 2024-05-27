@@ -30,7 +30,7 @@ final class ClosureExporter implements ClosureExporterInterface
         $node = static::find($ast, $this->createFindCallback($reflector));
 
         if (!$node) {
-            throw new ExportException("Can't export closure");
+            throw new ExportException("Can't export closure", $closure);
         }
 
         $visitor = $this->getVisitor(
