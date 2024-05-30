@@ -17,6 +17,7 @@ use PhpParser\PrettyPrinterAbstract;
 use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\Closure as NodeClosure;
 use PhpParser\Node\Name;
+use function Bermuda\Stdlib\array_last;
 
 final class ClosureExporter implements ClosureExporterInterface
 {
@@ -30,6 +31,12 @@ final class ClosureExporter implements ClosureExporterInterface
         $node = static::find($ast, $this->createFindCallback($reflector));
 
         if (!$node) {
+            if ($reflector->getClosureCalledClass() !== null) {
+                $cls = $reflector->getClosureCalledClass()->name;
+                $method = $reflector->getShortName();
+                return "fn() => $cls::$method(...\get_function_args())";
+            }
+
             throw new ExportException("Can't export closure", $closure);
         }
 
@@ -119,7 +126,7 @@ final class ClosureExporter implements ClosureExporterInterface
             public function enterNode(Node $node)
             {
                 if (!empty($this->stack)) {
-                    $node->setAttribute('parent', $this->stack[count($this->stack) - 1]);
+                    $node->setAttribute('parent', array_last($this->stack));
                 }
 
                 $this->stack[] = $node;
@@ -189,13 +196,13 @@ final class ClosureExporter implements ClosureExporterInterface
                 static $cls = null;
 
                 if (!empty($this->stack)) {
-                    $node->setAttribute('parent', $this->stack[count($this->stack) - 1]);
+                    $node->setAttribute('parent', array_last($this->stack));
                 }
 
                 $this->stack[] = $node;
 
                 if ($node instanceof Name && !$node instanceof Name\FullyQualified) {
-                    foreach ($this->uses as $use) {
+                    foreach ($this->uses ?? [] as $use) {
                         $parts = [];
                         if ($use instanceof Node\Stmt\GroupUse) {
                             $parts = $use->prefix->getParts();
