@@ -21,16 +21,17 @@ class ArrayExporter implements ArrayExporterInterface {
             }
 
             if (is_array($value)) {
-                $path !== null ? $path .= ".$k" : $path = $k;
+                $path !== null ? $path .= "[$k]" : $path = "[$k]";
                 $value = $this->doExport($value, $deep + 1, $path);
                 $content .= "$key => $value";
             } elseif ($value instanceof \Closure) {
                 $value = export_closure($value);
                 $content .= "$key => $value";
             } elseif (is_object($value)) {
-                $path !== null ? $path .= ".$k" : $path = $k;
+                $path !== null ? $path .= "[$k]" : $path = "[$k]";
                 throw new ArrayExportException(
-                    "The value of the array with the key {$path} is an object and cannot be exported"
+                    "The value of the array with the key {$path} is an object and cannot be exported",
+                    $value
                 );
             } elseif (is_int($value) || is_float($value)) {
                 $content .= "$key => $value";
@@ -40,7 +41,7 @@ class ArrayExporter implements ArrayExporterInterface {
             } elseif (is_null($value)) {
                 $content .= "$key => null";
             } elseif (is_resource($value)) {
-                $path !== null ? $path .= ".$k" : $path = $k;
+                $path !== null ? $path .= "[$k]" : $path = $k;
                 throw new ArrayExportException(
                     "The value of the array with the key {$path} is an resource and cannot be exported"
                 );
