@@ -98,10 +98,9 @@ class ArrayFormatter implements FormatterInterface
         try {
             $formatter = new ClosureFormatter();
             $formattedClosure = $formatter->formatWithDepth($closure, $config, $depth);
-            // Разбиваем на строки
+            
             $lines = explode("\n", $formattedClosure);
             if (count($lines) > 1) {
-                // Последняя строка должна иметь отступ равный текущему $depth, а не $depth + 1
                 $lastLine = array_pop($lines);
                 $lines[] = preg_replace('/^\s+/', str_repeat($config->indent, $depth), $lastLine);
             }
