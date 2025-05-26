@@ -3,30 +3,33 @@
 namespace Bermuda\VarExport;
 
 /**
- * @param \Closure $closure
- * @return string
+ * Export a closure to its string representation
  */
-function export_closure(\Closure $closure): string
+function export_closure(\Closure $closure, ?FormatterConfig $config = null): string
 {
-    return VarExporter::export($closure);
+    return VarExporter::export($closure, $config);
 }
 
 /**
- * @param array $var
- * @return string
- * @throws ArrayExportException
+ * Export an array to its string representation
  */
-function export_array(array $var): string
+function export_array(array $var, ?FormatterConfig $config = null): string
 {
-    return VarExporter::export($var);
+    return VarExporter::export($var, $config);
 }
 
 /**
- * @param mixed $var
- * @return string
- * @throws ExportException
+ * Export any variable to its string representation
  */
-function export_var(mixed $var): string
+function export_var(mixed $var, ?FormatterConfig $config = null, bool $pretty = true): string
 {
-    return VarExporter::export($var);
+    return $pretty ? VarExporter::exportPretty($var, $config) : VarExporter::export($var, $config);
+}
+
+/**
+ * Export any variable with pretty formatting
+ */
+function export_var_pretty(mixed $var, ?FormatterConfig $config = null): string
+{
+    return VarExporter::exportPretty($var, $config);
 }

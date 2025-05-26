@@ -2,40 +2,85 @@
 
 namespace Bermuda\VarExport;
 
+use Bermuda\VarExport\Formatter\FormatterMode;
+use Bermuda\VarExport\Formatter\FormatterConfig;
+
 final class VarExporter
 {
-    private static $exporters = [];
-    public static function export(mixed $var): string
+    private static array $exporters = [];
+    private static FormatterConfig $defaultConfig;
+
+    public static function export(mixed $var, ?FormatterConfig $config = null): string
     {
-        if ($var instanceof \Closure) return self::getExporter(ClosureExporterInterface::class)->exportClosure($var);
-        if (is_array($var)) return self::getExporter(ArrayExporterInterface::class)->exportArray($var);
-        if (is_int($var) || is_float($var) || is_string($var)) return $var;
-        if (is_bool($var)) return $var ? 'true' : 'false';
-        if (is_object($var)) throw new ExportException('The variable is an object and cannot be exported', $var);
-        if (is_resource($var)) throw new ExportException('The variable is an resource and cannot be exported', $var);
+        $config ??= self::getDefaultConfig();
+
+        return match (true) {
+            $var instanceof \Closure => self::getClosureExporter($config)->exportClosure($var),
+            is_array($var) => self::getArrayExporter($config)->exportArray($var),
+            is_int($var), is_float($var) => (string)$var,
+            is_string($var) => "'" . addcslashes($var, "'\\") . "'",
+            is_bool($var) => $var ? 'true' : 'false',
+            is_null($var) => 'null',
+            is_object($var) => throw new ExportException(
+                'Object of type ' . get_class($var) . ' cannot be exported',
+                $var
+            ),
+            is_resource($var) => throw new ExportException(
+                'Resource of type ' . get_resource_type($var) . ' cannot be exported'
+            ),
+            default => throw new ExportException(
+                'Unsupported variable type: ' . gettype($var),
+                $var
+            )
+        };
     }
 
-    /**
-     * @param ArrayExporterInterface|ClosureExporterInterface $exporter
-     * @return void
-     */
+    public static function exportPretty(mixed $var, ?FormatterConfig $config = null): string
+    {
+        $config ??= self::getDefaultConfig();
+        $prettyConfig = $config->withMode(FormatterMode::PRETTY);
+        return self::export($var, $prettyConfig);
+    }
+
+    public static function setDefaultConfig(FormatterConfig $config): void
+    {
+        self::$defaultConfig = $config;
+    }
+
+    public static function getDefaultConfig(): FormatterConfig
+    {
+        return self::$defaultConfig ??= new FormatterConfig();
+    }
+
     public static function setExporter(ArrayExporterInterface|ClosureExporterInterface $exporter): void
     {
-        foreach ([ClosureExporterInterface::class, ArrayExporterInterface::class] as $i) {
-            if ($exporter instanceof $i) self::$exporters[$i] = $exporter;
+        $interfaces = [ArrayExporterInterface::class, ClosureExporterInterface::class];
+        foreach ($interfaces as $interface) {
+            if ($exporter instanceof $interface) {
+                self::$exporters[$interface] = $exporter;
+            }
         }
     }
 
-    private static function getExporter(string $class): object
+    private static function getArrayExporter(FormatterConfig $config): ArrayExporter
     {
-        if (!isset(self::$exporters[$class])) {
-            if ($class == ArrayExporterInterface::class) {
-                return self::$exporters[$class] = new ArrayExporter;
-            } else {
-                return self::$exporters[$class] = new ClosureExporter;
-            }
+        $key = ArrayExporterInterface::class;
+        if (!isset(self::$exporters[$key]) ||
+            !self::$exporters[$key] instanceof ArrayExporter) {
+            return new ArrayExporter($config);
         }
-        
-        return self::$exporters[$class];
+
+        return self::$exporters[$key]->withConfig($config);
+    }
+
+    private static function getClosureExporter(FormatterConfig $config): ClosureExporter
+    {
+        $key = ClosureExporterInterface::class;
+        if (!isset(self::$exporters[$key]) ||
+            !self::$exporters[$key] instanceof ClosureExporter) {
+            return new ClosureExporter($config);
+        }
+
+        return self::$exporters[$key]->withConfig($config);
     }
 }
