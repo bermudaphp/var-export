@@ -5,17 +5,17 @@ namespace Bermuda\VarExport;
 /**
  * Export a closure to its string representation
  */
-function export_closure(\Closure $closure, ?FormatterConfig $config = null): string
+function export_closure(\Closure $closure, ?FormatterConfig $config = null, bool $pretty = true): string
 {
-    return VarExporter::export($closure, $config);
+    return $pretty ? VarExporter::exportPretty($var, $config) : VarExporter::export($var, $config);
 }
 
 /**
  * Export an array to its string representation
  */
-function export_array(array $var, ?FormatterConfig $config = null): string
+function export_array(array $var, ?FormatterConfig $config = null, bool $pretty = true): string
 {
-    return VarExporter::export($var, $config);
+    return $pretty ? VarExporter::exportPretty($var, $config) : VarExporter::export($var, $config);
 }
 
 /**
