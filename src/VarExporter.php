@@ -50,12 +50,13 @@ final class VarExporter
         };
     }
 
-    /**
+   /**
      * Export a variable with pretty formatting.
      *
      * @param mixed $var The variable to export
      * @param FormatterConfig|null $config Optional formatter configuration
      * @return string The exported variable as a pretty-formatted string
+     * @throws ExportException If the variable type cannot be exported
      */
     public static function exportPretty(mixed $var, ?FormatterConfig $config = null): string
     {
